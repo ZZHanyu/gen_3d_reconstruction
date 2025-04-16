@@ -1,0 +1,12 @@
+gradio_imageslider
+gradio
+torch
+torchvision
+opencv-python
+matplotlib
+huggingface_hub
+timm
+yapf
+addict
+diffusers
+safetensors

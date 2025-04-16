@@ -1,0 +1,12 @@
+--2025-03-24 14:05:25--  https://repo-sam.inria.fr/fungraph/3d-gaussian-splatting/datasets/pretrained/models.zip
+Connecting to 127.0.0.1:7890... connected.
+Proxy request sent, awaiting response... 200 OK
+Length: 14660630999 (14G) [application/zip]
+Saving to: ‘models.zip’
+
+
+
+2025-03-24 14:32:25 (6.22 MB/s) - Connection closed at byte 10559215907. Retrying.
+
+--2025-03-24 14:32:25--  (try: 2)  https://repo-sam.inria.fr/fungraph/3d-gaussian-splatting/datasets/pretrained/models.zip
+Connecting to 127.0.0.1:7890... failed: Connection refused.
