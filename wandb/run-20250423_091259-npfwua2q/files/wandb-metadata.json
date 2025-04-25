@@ -1,0 +1,54 @@
+{
+  "os": "Linux-5.15.0-134-generic-x86_64-with-glibc2.31",
+  "python": "CPython 3.12.9",
+  "startedAt": "2025-04-23T01:12:59.870069Z",
+  "args": [
+    "-s",
+    "/home/zhy01/桌面/feicuiwan_all",
+    "--new_image_path",
+    "/home/zhy01/gen_3d_recon/sd_stream/lineart1"
+  ],
+  "program": "/home/zhy01/gen_3d_recon/gaussian-splatting/train.py",
+  "codePath": "gaussian-splatting/train.py",
+  "git": {
+    "remote": "https://github.com/ZZHanyu/gen_3d_reconstruction.git",
+    "commit": "6721821d4fff59094cfaf7b8e439d975fd18257d"
+  },
+  "email": "2538285586@qq.com",
+  "root": "/home/zhy01/gen_3d_recon",
+  "host": "ubuntu20",
+  "executable": "/home/zhy01/miniconda3/envs/gaussian_splatting/bin/python",
+  "codePathLocal": "gaussian-splatting/train.py",
+  "cpu_count": 24,
+  "cpu_count_logical": 32,
+  "gpu": "NVIDIA GeForce RTX 4090",
+  "gpu_count": 2,
+  "disk": {
+    "/": {
+      "total": "502814113792",
+      "used": "81713856512"
+    }
+  },
+  "memory": {
+    "total": "134809427968"
+  },
+  "cpu": {
+    "count": 24,
+    "countLogical": 32
+  },
+  "gpu_nvidia": [
+    {
+      "name": "NVIDIA GeForce RTX 4090",
+      "memoryTotal": "25757220864",
+      "cudaCores": 16384,
+      "architecture": "Ada"
+    },
+    {
+      "name": "NVIDIA GeForce RTX 4090",
+      "memoryTotal": "25757220864",
+      "cudaCores": 16384,
+      "architecture": "Ada"
+    }
+  ],
+  "cudaVersion": "12.8"
+}

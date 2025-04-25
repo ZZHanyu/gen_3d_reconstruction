@@ -1,0 +1,23 @@
+Optimizing
+Output folder: ./output/474400a9-8 [23/04 09:13:00]
+Tensorboard not available: not logging progress [23/04 09:13:00]
+[INFO] loading scene from ./output/474400a9-8! [23/04 09:13:06]
+[INFO] Found sparse folder, assuming COLMAP data set! [23/04 09:13:06]
+[INFO] Fetching new dataset from /home/zhy01/gen_3d_recon/sd_stream/lineart1! [23/04 09:13:06]
+[INFO] image folder is = /home/zhy01/gen_3d_recon/sd_stream/lineart1 [23/04 09:13:06]
+Reading camera 255/255 [23/04 09:13:06]
+Loading Training Cameras [23/04 09:13:07]
+Loading Test Cameras [23/04 09:13:13]
+[INFO] no trained gaussian founded! now init new gaussian from pcd... [23/04 09:13:13]
+Number of points at initialisation :  5257673 [23/04 09:13:13]
+Training progress: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 30000/30000 [38:05<00:00, 13.13it/s, Loss=0.1398736, Depth Loss=0.0000000]
+
+[ITER 7000] Evaluating train: L1 0.09331327676773071 PSNR 18.08822593688965 [23/04 09:21:28]
+
+[ITER 7000] Saving Gaussians [23/04 09:21:28]
+
+[ITER 30000] Evaluating train: L1 0.07503908723592759 PSNR 19.687400817871094 [23/04 09:51:20]
+
+[ITER 30000] Saving Gaussians [23/04 09:51:20]
+
+Training complete. [23/04 09:51:47]

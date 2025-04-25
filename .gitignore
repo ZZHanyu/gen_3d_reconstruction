@@ -9,3 +9,8 @@ diff_rasterization/dist
 tensorboard_3d
 screenshots
 *.zip
+lineart*
+depth*
+canny*
+downloaded_model
+TRELLIS_VAE/ss_enc_conv3d_16l8_fp16.safetensors

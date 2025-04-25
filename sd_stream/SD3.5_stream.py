@@ -60,10 +60,15 @@ from ControlNet_v1_1_nightly.cldm.model import create_model, load_state_dict
 from ControlNet_v1_1_nightly.cldm.ddim_hacked import DDIMSampler
 # from ControlNet_v1_1_nightly.annotator.lineart import LineartDetector
 from ControlNet_v1_1_nightly.annotator.util import resize_image, HWC3
+from diffusers import EulerAncestralDiscreteScheduler
+
+from ControlNetPlus.models.controlnet_union import ControlNetModel_Union
+from ControlNetPlus.pipeline.pipeline_controlnet_union_sd_xl import StableDiffusionXLControlNetUnionPipeline
+
 
 if torch.cuda.is_available():
-    print(f"[INFO] 当前使用的GPU设备：{torch.cuda.current_device()},")
-    print(f"GPU设备名称：{torch.cuda.get_device_name(0)}")
+    print(f"[INFO] 当前使用的GPU设备 {torch.cuda.current_device()},")
+    print(f"GPU设备名称 {torch.cuda.get_device_name(0)}")
 else:
     print("[INFO] 没有可用的cuda设备!")
 
@@ -469,6 +474,10 @@ def SDXL_refiner(prompt, path):
 #         print(f"[INFO] the save path is {save_path}")
 }
 
+        
+
+
+
 
 class controlnet_sdxl:
     def __init__(
@@ -557,6 +566,7 @@ class controlnet_sdxl:
             use_safetensors=True,
             variant="fp16",
         )
+
         return controlnet
 
 
@@ -626,13 +636,13 @@ class controlnet_sdxl:
             image=raw_image,
             control_image=raw_image,
             ip_adapter_image=refer_image,
-            strength=0.6, # 控制原图保留多少，默认0.8，越小越接近原图
+            strength=0.9, # 控制原图保留多少，默认0.8，越小越接近原图
             height=1024,
             width=1024,
             num_inference_steps=50, # sampler推理次数，越高生成越好
             generator=generator,
             guidance_scale=10.0, # CFG指引强度，越大越贴合prompt，越小越自由生成，范围5-12
-            controlnet_conditioning_scale=1.2, # 控制controlnet强度，默认1.0
+            controlnet_conditioning_scale=1.4, # 控制controlnet强度，默认1.0
         ).images[0]
         
 
@@ -640,6 +650,74 @@ class controlnet_sdxl:
         save_path = os.path.join(self.config["out_path"], single_image_name + ".png")
         image.save(save_path)
         print(f"[INFO] Image saved to {save_path}")
+
+
+
+
+class sdxl_controlnet_plus(controlnet_sdxl):
+    def __init__(self, task, prompt, neg_prompt):
+        super().__init__()
+        self.congfig["checkpoint"] = "xinsir/controlnet-union-sdxl-1.0"
+        self.config["task"] = task
+        self.config["prompt"] = prompt
+        self.config["neg_prompt"] = neg_prompt
+
+        for key, value in self.config.items():
+            print(f"[INFO] {key}: {value}")
+        self.task = self.config["task"]
+
+        self.vae = self.custmize_vae()
+        self.controlnet_model = self.instantiation_controlnet()
+        self.pipe = self.init_pipeline(self.controlnet_model)
+        os.makedirs(self.config["out_path"], exist_ok=True)
+        print("[INFO] ControlNet SDXL pipeline initialized successfully!")
+
+        self.judge_save_folder()
+        print(f"[INFO] saving folder is {self.config['out_path']}")
+
+
+    def custmize_vae(self):
+        return AutoencoderKL.from_pretrained("madebyollin/sdxl-vae-fp16-fix", torch_dtype=torch.float16)
+
+
+    def instantiation_controlnet(self):
+        return ControlNetModel_Union.from_pretrained(self.config["checkpoint"] , torch_dtype=torch.float16, use_safetensors=True)
+    
+
+    def init_pipeline(self, controlnet):
+        eulera_scheduler = EulerAncestralDiscreteScheduler.from_pretrained("stabilityai/stable-diffusion-xl-base-1.0", subfolder="scheduler")
+
+        pipe = StableDiffusionXLControlNetUnionPipeline.from_pretrained(
+            pretrained_model_name_or_path=self.config["base_model"], controlnet=self.controlnet_model, 
+            vae=self.vae,
+            torch_dtype=torch.float16,
+            scheduler=eulera_scheduler,
+        )
+        return pipe
+
+    @torch.no_grad()
+    def forward(self, raw_image, refer_image, single_image_name):
+        generator = torch.manual_seed(423)
+        result = self.pipe(
+            prompt=self.config["prompt"],
+            negative_prompt=self.config["neg_prompt"],
+            image=raw_image,
+            control_image=raw_image,
+            ip_adapter_image=refer_image,
+            strength=0.7, # 控制原图保留多少，默认0.8，越小越接近原图
+            height=1024,
+            width=1024,
+            num_inference_steps=30, # sampler推理次数，越高生成越好
+            generator=generator,
+            guidance_scale=10.0, # CFG指引强度，越大越贴合prompt，越小越自由生成，范围5-12
+            controlnet_conditioning_scale=1.4, # 控制controlnet强度，默认1.0
+        ).images[0]
+
+        image = result
+        save_path = os.path.join(self.config["out_path"], single_image_name + ".png")
+        image.save(save_path)
+        print(f"[INFO] Image saved to {save_path}")
+
 
 
 
@@ -730,6 +808,7 @@ class controlnet_v1_1:
         except Exception as e:
             raise ValueError(f"[ERROR] Failed to load ControlNet checkpoint: {e}")
 
+
     def init_pipeline(self, controlnet):
         if isinstance(controlnet, list):
             print("[INFO] Combining multiple ControlNet modules...")
@@ -752,8 +831,8 @@ class controlnet_v1_1:
                 controlnet=controlnet,
                 torch_dtype=torch.float16,
             ).to(self.device)
-            if self.config["task"] == "lineart":
-                pipe.controlnet.set_control_mode("lineart", mode="standard")
+            # if self.config["task"] == "lineart":
+                # pipe.controlnet.set_control_mode("lineart", mode="standard")
             pipe.load_ip_adapter(
                 pretrained_model_name_or_path_or_dict="h94/IP-Adapter",
                 subfolder="models",
@@ -788,7 +867,7 @@ class controlnet_v1_1:
                 image=raw_image,
                 control_image=raw_image,
                 ip_adapter_image=refer_image,
-                strength=0.6, # 控制原图保留多少，默认0.8，越小越接近原图
+                # strength=0.6, # 控制原图保留多少，默认0.8，越小越接近原图
                 height=1024,
                 width=1024,
                 num_inference_steps=50, # sampler推理次数，越高生成越好
@@ -803,7 +882,7 @@ class controlnet_v1_1:
                 image=raw_image,
                 control_image=[raw_image] * 2,
                 ip_adapter_image=refer_image,
-                strength=0.6, # 控制原图保留多少，默认0.8，越小越接近原图
+                # strength=0.6, # 控制原图保留多少，默认0.8，越小越接近原图
                 height=1024,
                 width=1024,
                 num_inference_steps=50, # sampler推理次数，越高生成越好
@@ -1189,21 +1268,27 @@ if __name__ == "__main__":
     for key, value in pipeline_config.items():
         print(f"[INFO] {key} is {value}")
 
-    pipeline = controlnet_v1_1(
-        task="lineart",
-        # prompt="A post-apocalyptic cityscape, destroyed and collapsed buildings, scattered rubble and debris, broken structures, dark atmosphere, realistic style with Ultra high definition resolution, best quality",
-        prompt="a futuristic cyberpunk cityscape at night, neon lights, towering skyscrapers, flying cars, rainy streets, glowing signs, high-tech urban environment, vibrant colors, detailed architecture, foggy atmosphere",
-        # neg_prompt="modern buildings, skyscrapers, neon lights, crowded street, traffic, industrial structures, blurry, low quality, distorted, text, logo, watermark, deformed, extra limbs, bad anatomy"
-        neg_prompt="blurry, low-resolution, cartoon, unrealistic, distorted, poorly drawn, low quality"
-    )
+    # pipeline = controlnet_v1_1(
+    #     task="lineart",
+    #     # prompt="A post-apocalyptic cityscape, destroyed and collapsed buildings, scattered rubble and debris, broken structures, dark atmosphere, realistic style with Ultra high definition resolution, best quality",
+    #     prompt="a futuristic cyberpunk cityscape at night, neon lights, towering skyscrapers, flying cars, rainy streets, glowing signs, high-tech urban environment, vibrant colors, detailed architecture, foggy atmosphere",
+    #     # neg_prompt="modern buildings, skyscrapers, neon lights, crowded street, traffic, industrial structures, blurry, low quality, distorted, text, logo, watermark, deformed, extra limbs, bad anatomy"
+    #     neg_prompt="blurry, low-resolution, cartoon, unrealistic, distorted, poorly drawn, low quality, dark"
+    # )
     
     # pipeline = controlnet_sdxl(
-    #     task="depth",
-    #     prompt="a picturesque European town, cobblestone streets, colorful medieval houses, rustic architecture, charming small town, old brick buildings, flower-covered balconies, vintage street lamps, warm soft lighting, sunny afternoon, scenic view, highly detailed, cinematic atmosphere",
-    #     #"A post-apocalyptic cityscape, destroyed and collapsed buildings, scattered rubble and debris, broken structures, dark atmosphere, realistic style with Ultra high definition resolution, best quality",
-    #     neg_prompt="modern buildings, skyscrapers, neon lights, crowded street, traffic, industrial structures, blurry, low quality, distorted, text, logo, watermark, deformed, extra limbs, bad anatomy"
-    #     # "blurry, low-resolution, cartoon, unrealistic, distorted, poorly drawn, low quality",
+    #     task="canny",
+    #     # prompt="a picturesque European town, cobblestone streets, colorful medieval houses, rustic architecture, charming small town, old brick buildings, flower-covered balconies, vintage street lamps, warm soft lighting, sunny afternoon, scenic view, highly detailed, cinematic atmosphere",
+    #     prompt="a cyberpunk cityscape at night, neon lights, high-tech urban environment, vibrant colors, detailed architecture, foggy atmosphere, 4K, super-resoltion",
+    #     # neg_prompt="modern buildings, skyscrapers, neon lights, crowded street, traffic, industrial structures, blurry, low quality, distorted, text, logo, watermark, deformed, extra limbs, bad anatomy"
+    #     neg_prompt = "blurry, low-resolution, cartoon, unrealistic, distorted, poorly drawn, low quality",
     # )
+
+    pipeline = sdxl_controlnet_plus(
+        task="ctrl_plus_lineart",
+        prompt="a cyberpunk cityscape at night, neon lights, high-tech urban environment, vibrant colors, detailed architecture, foggy atmosphere, 4K, super-resoltion",
+        neg_prompt = "blurry, low-resolution, cartoon, unrealistic, distorted, poorly drawn, low quality",
+    )
 
     # Method1: 统一风格（一个完备prompt）
     for single_image in tqdm(image_queue, leave=True, desc="M1: all transfer using same prompt..."):
